@@ -1,0 +1,34 @@
+component: app
+nameOverride: ""
+fullnameOverride: ""
+replicas: 1
+
+image:
+  repository: video-demo
+  tag: ""
+  pullPolicy: IfNotPresent
+
+commandOverride: {}
+
+service:
+  enabled: true
+  type: ClusterIP
+  port: 8000
+  targetPort: 8000
+
+health: {}
+
+migrations:
+  enabled: false
+
+configMap:
+  enabled: false
+  data: {}
+
+sealedSecret:
+  enabled: false
+  encryptedData: {}
+
+env: {}
+
+resources: {}

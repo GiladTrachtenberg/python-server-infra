@@ -1,0 +1,10 @@
+redis:
+  architecture: standalone
+  auth:
+    enabled: true
+    password: ""
+  master:
+    persistence:
+      size: 512Mi
+  commonAnnotations:
+    argocd.argoproj.io/sync-wave: "2"

@@ -1,0 +1,14 @@
+minio:
+  mode: standalone
+  replicas: 1
+  persistence:
+    size: 1Gi
+  rootUser: minioadmin
+  rootPassword: minioadmin
+  buckets:
+    - name: video-demo
+      policy: none
+      purge: false
+  resources: {}
+  commonAnnotations:
+    argocd.argoproj.io/sync-wave: "3"
