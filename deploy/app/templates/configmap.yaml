@@ -5,6 +5,9 @@ metadata:
   name: {{ include "video-demo.fullname" . }}-config
   labels:
     {{- include "video-demo.labels" . | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/hook: PreSync,Sync
+    argocd.argoproj.io/hook-delete-policy: Never
 data:
   {{- range $key, $value := .Values.configMap.data }}
   {{ $key }}: {{ $value | quote }}
