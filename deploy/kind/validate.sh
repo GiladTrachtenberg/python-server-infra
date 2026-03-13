@@ -181,18 +181,20 @@ check_endpoint_health() {
         fail "GET / (frontend): $status"
     fi
 
-    status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$BASE_URL/api/v1/healthz" 2>/dev/null || echo "000")
-    if [[ "$status" == "200" ]]; then
-        pass "GET /api/v1/healthz: $status"
+    local healthz_body
+    healthz_body=$(kubectl exec -n "$APP_NS" deploy/video-demo-api -- python -c "import urllib.request; print(urllib.request.urlopen('http://localhost:8000/healthz').read().decode())" 2>/dev/null || echo "")
+    if [[ "$healthz_body" == *'"ok"'* ]]; then
+        pass "GET /healthz (in-cluster): ok"
     else
-        fail "GET /api/v1/healthz: $status"
+        fail "GET /healthz (in-cluster): $healthz_body"
     fi
 
-    status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$BASE_URL/api/v1/readyz" 2>/dev/null || echo "000")
-    if [[ "$status" == "200" ]]; then
-        pass "GET /api/v1/readyz: $status"
+    local readyz_body
+    readyz_body=$(kubectl exec -n "$APP_NS" deploy/video-demo-api -- python -c "import urllib.request; print(urllib.request.urlopen('http://localhost:8000/readyz').read().decode())" 2>/dev/null || echo "")
+    if [[ "$readyz_body" == *'"ok"'* ]]; then
+        pass "GET /readyz (in-cluster): ok"
     else
-        fail "GET /api/v1/readyz: $status"
+        fail "GET /readyz (in-cluster): $readyz_body"
     fi
 }
 
@@ -201,7 +203,7 @@ run_full_flow() {
 
     local ts
     ts=$(date +%s)
-    local email="validate-${ts}@test.local"
+    local email="validate-${ts}@example.com"
     local password="Val1dP@ss${ts}"
 
     echo -e "  ${CYAN}Registering $email...${NC}"
@@ -211,7 +213,7 @@ run_full_flow() {
         -H "Content-Type: application/json" \
         -d "{\"email\":\"$email\",\"password\":\"$password\"}" 2>/dev/null)
     local register_status
-    register_status=$(echo "$register_resp" | jq -r '.email // empty')
+    register_status=$(echo "$register_resp" | jq -r '.data.email // .email // empty')
     if [[ -n "$register_status" ]]; then
         pass "register: created $register_status"
     else
@@ -226,8 +228,8 @@ run_full_flow() {
         -H "Content-Type: application/json" \
         -d "{\"email\":\"$email\",\"password\":\"$password\"}" 2>/dev/null)
     local access_token refresh_token
-    access_token=$(echo "$login_resp" | jq -r '.access_token // empty')
-    refresh_token=$(echo "$login_resp" | jq -r '.refresh_token // empty')
+    access_token=$(echo "$login_resp" | jq -r '.data.access_token // .access_token // empty')
+    refresh_token=$(echo "$login_resp" | jq -r '.data.refresh_token // .refresh_token // empty')
     if [[ -n "$access_token" && -n "$refresh_token" ]]; then
         pass "login: got access + refresh tokens"
     else
@@ -242,8 +244,8 @@ run_full_flow() {
         -H "Content-Type: application/json" \
         -H "Authorization: Bearer $access_token" 2>/dev/null)
     local job_id job_status
-    job_id=$(echo "$job_resp" | jq -r '.id // empty')
-    job_status=$(echo "$job_resp" | jq -r '.status // empty')
+    job_id=$(echo "$job_resp" | jq -r '.data.id // .id // empty')
+    job_status=$(echo "$job_resp" | jq -r '.data.status // .status // empty')
     if [[ -n "$job_id" ]]; then
         pass "create job: id=$job_id status=$job_status"
     else
@@ -284,8 +286,8 @@ run_full_flow() {
         -H "Authorization: Bearer $access_token" \
         "$BASE_URL/api/v1/jobs/$job_id" 2>/dev/null)
     local download_url final_status
-    download_url=$(echo "$detail_resp" | jq -r '.download_url // empty')
-    final_status=$(echo "$detail_resp" | jq -r '.status // empty')
+    download_url=$(echo "$detail_resp" | jq -r '.data.download_url // .download_url // empty')
+    final_status=$(echo "$detail_resp" | jq -r '.data.status // .status // empty')
 
     if [[ "$final_status" == "completed" || "$final_status" == "COMPLETED" ]]; then
         pass "job status: $final_status"
@@ -316,7 +318,7 @@ run_full_flow() {
         -H "Content-Type: application/json" \
         -d "{\"refresh_token\":\"$refresh_token\"}" 2>/dev/null)
     local new_access
-    new_access=$(echo "$refresh_resp" | jq -r '.access_token // empty')
+    new_access=$(echo "$refresh_resp" | jq -r '.data.access_token // .access_token // empty')
     if [[ -n "$new_access" ]]; then
         pass "token refresh: got new access token"
     else
