@@ -4,6 +4,44 @@ set -euo pipefail
 CLUSTER_NAME="video-demo"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+ensure_tool() {
+  local cmd="$1"
+  local brew_name="${2:-$1}"
+
+  if command -v "$cmd" &>/dev/null; then
+    echo "    $cmd: $(command -v "$cmd")"
+    return
+  fi
+
+  if ! command -v brew &>/dev/null; then
+    echo "ERROR: $cmd not found and brew is not available."
+    echo "       Install $cmd manually: https://formulae.brew.sh/formula/$brew_name"
+    exit 1
+  fi
+
+  read -rp "    $cmd not found. Install via Homebrew? [y/N] " answer
+  if [[ "${answer,,}" == "y" ]]; then
+    brew install "$brew_name"
+  else
+    echo "ERROR: $cmd is required. Aborting."
+    exit 1
+  fi
+}
+
+echo "==> Checking prerequisites..."
+ensure_tool kind
+ensure_tool helm
+ensure_tool kubectl kubernetes-cli
+ensure_tool kubeseal
+ensure_tool jq
+ensure_tool docker
+
+if ! docker info &>/dev/null; then
+  echo "ERROR: Docker is installed but not running. Start Docker Desktop and retry."
+  exit 1
+fi
+echo "    Docker daemon: running"
+
 echo "==> Checking for existing cluster..."
 if kind get clusters 2>/dev/null | grep -q "^${CLUSTER_NAME}$"; then
   echo "    Cluster '${CLUSTER_NAME}' already exists, skipping creation."
@@ -40,12 +78,12 @@ echo "==> Creating demo namespace..."
 kubectl create namespace demo --dry-run=client -o yaml | kubectl apply -f -
 
 SEALED_DIR="${SCRIPT_DIR}/../sealed-secrets"
-if ls "${SEALED_DIR}"/*.yaml &>/dev/null; then
-  echo "==> Applying sealed secrets..."
-  kubectl apply -f "${SEALED_DIR}/"
-else
-  echo "==> No sealed secret files found. Run seal-secrets.sh first."
+if ! ls "${SEALED_DIR}"/*.yaml &>/dev/null 2>&1; then
+  echo "==> No sealed secret files found. Generating now..."
+  bash "${SEALED_DIR}/seal-secrets.sh"
 fi
+echo "==> Applying sealed secrets..."
+kubectl apply -f "${SEALED_DIR}/"
 
 echo "==> Applying ArgoCD ApplicationSet..."
 kubectl apply -f "${SCRIPT_DIR}/../argocd/applicationset.yaml"
@@ -69,3 +107,7 @@ echo "  ArgoCD admin password: ${ARGOCD_PASSWORD}"
 echo "  Login: argocd login localhost:9090 --username admin --password \${ARGOCD_PASSWORD} --insecure"
 echo ""
 echo "  ApplicationSet 'video-demo' deployed. Watch: argocd app list"
+
+# echo ""
+# echo "==> Running E2E validation..."
+# bash "${SCRIPT_DIR}/validate.sh"

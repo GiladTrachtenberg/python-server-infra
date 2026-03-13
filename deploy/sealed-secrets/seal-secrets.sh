@@ -3,6 +3,7 @@ set -euo pipefail
 
 NAMESPACE="demo"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+KUBESEAL_ARGS=(--controller-name=sealed-secrets --controller-namespace=kube-system)
 
 CNPG_PASSWORD=$(openssl rand -base64 24 | tr -d '/+=' | head -c 24)
 REDIS_PASSWORD=$(openssl rand -base64 24 | tr -d '/+=' | head -c 24)
@@ -11,7 +12,7 @@ MINIO_ROOT_PASSWORD=$(openssl rand -base64 24 | tr -d '/+=' | head -c 24)
 JWT_SECRET_KEY=$(openssl rand -hex 32)
 
 echo "==> Verifying kubeseal can reach the controller..."
-kubeseal --fetch-cert > /dev/null 2>&1 || {
+kubeseal "${KUBESEAL_ARGS[@]}" --fetch-cert > /dev/null 2>&1 || {
   echo "ERROR: kubeseal cannot reach the Sealed Secrets controller."
   echo "       Make sure the Kind cluster is running and bootstrap.sh has been executed."
   exit 1
@@ -33,7 +34,7 @@ seal_secret() {
     --namespace "${NAMESPACE}" \
     --dry-run=client -o yaml \
     "${args[@]}" \
-    | kubeseal --format yaml \
+    | kubeseal "${KUBESEAL_ARGS[@]}" --format yaml \
     > "${output}"
 }
 

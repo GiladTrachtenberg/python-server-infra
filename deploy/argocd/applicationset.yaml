@@ -68,6 +68,17 @@ spec:
         - resources-finalizer.argocd.argoproj.io
     spec:
       project: default
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: demo
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=false
+  templatePatch: |
+    spec:
       {{- if index . "valuesFile" }}
       sources:
         - repoURL: https://github.com/GiladTrachtenberg/python-server-infra.git
@@ -86,12 +97,3 @@ spec:
         targetRevision: HEAD
         path: '{{ .path }}'
       {{- end }}
-      destination:
-        server: https://kubernetes.default.svc
-        namespace: demo
-      syncPolicy:
-        automated:
-          prune: true
-          selfHeal: true
-        syncOptions:
-          - CreateNamespace=false

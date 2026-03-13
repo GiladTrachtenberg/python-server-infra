@@ -1,5 +1,9 @@
 redis:
   architecture: standalone
+  image:
+    registry: docker.io
+    repository: bitnami/redis
+    tag: sha256-97b20eafbc1e8a63fa244920980aeb81e686232a989a68f5379db73032d0b1a8
   auth:
     enabled: true
     existingSecret: redis-password

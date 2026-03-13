@@ -8,6 +8,8 @@ minio:
     - name: video-demo
       policy: none
       purge: false
-  resources: {}
+  resources:
+    requests:
+      memory: 256Mi
   commonAnnotations:
     argocd.argoproj.io/sync-wave: "3"
