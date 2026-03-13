@@ -54,14 +54,14 @@ seal_secret "minio-creds" "${SCRIPT_DIR}/minio-creds.yaml" \
 echo "==> Sealing application shared secrets..."
 
 DB_URL="postgres://app:${CNPG_PASSWORD}@demo-pg-rw:5432/demo"
-REDIS_URL="redis://:${REDIS_PASSWORD}@demo-redis-master:6379/0"
-CELERY_BROKER="redis://:${REDIS_PASSWORD}@demo-redis-master:6379/1"
+REDIS_URL="redis://:${REDIS_PASSWORD}@redis-master:6379/0"
+CELERY_BROKER="redis://:${REDIS_PASSWORD}@redis-master:6379/1"
 
 seal_secret "app-shared-secrets" "${SCRIPT_DIR}/app-shared-secrets.yaml" \
   "DATABASE_URL=${DB_URL}" \
   "REDIS_URL=${REDIS_URL}" \
   "CELERY_BROKER_URL=${CELERY_BROKER}" \
-  "MINIO_ENDPOINT=demo-minio:9000" \
+  "MINIO_ENDPOINT=minio:9000" \
   "MINIO_ACCESS_KEY=${MINIO_ROOT_USER}" \
   "MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}"
 
