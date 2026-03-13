@@ -63,11 +63,7 @@ seal_secret "app-shared-secrets" "${SCRIPT_DIR}/app-shared-secrets.yaml" \
   "CELERY_BROKER_URL=${CELERY_BROKER}" \
   "MINIO_ENDPOINT=minio:9000" \
   "MINIO_ACCESS_KEY=${MINIO_ROOT_USER}" \
-  "MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}"
-
-echo "==> Sealing API-only secrets..."
-
-seal_secret "app-api-secrets" "${SCRIPT_DIR}/app-api-secrets.yaml" \
+  "MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}" \
   "JWT_SECRET_KEY=${JWT_SECRET_KEY}"
 
 echo "==> Creating GHCR pull secret..."
@@ -95,7 +91,6 @@ echo "  ${SCRIPT_DIR}/cnpg-app-creds.yaml"
 echo "  ${SCRIPT_DIR}/redis-password.yaml"
 echo "  ${SCRIPT_DIR}/minio-creds.yaml"
 echo "  ${SCRIPT_DIR}/app-shared-secrets.yaml"
-echo "  ${SCRIPT_DIR}/app-api-secrets.yaml"
 echo ""
 echo "Apply with: kubectl apply -f ${SCRIPT_DIR}/"
 echo ""
