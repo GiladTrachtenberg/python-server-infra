@@ -1,0 +1,97 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: video-demo
+  namespace: argocd
+spec:
+  goTemplate: true
+  generators:
+    - list:
+        elements:
+          - name: cnpg-cluster
+            path: deploy/infra/cnpg-cluster
+            wave: "1"
+          - name: redis
+            path: deploy/infra/redis
+            wave: "2"
+          - name: minio
+            path: deploy/infra/minio
+            wave: "3"
+          - name: video-demo-api
+            path: deploy/app
+            wave: "4"
+            valuesFile: deploy/app/values-api.yaml
+          - name: video-demo-worker
+            path: deploy/app
+            wave: "5"
+            valuesFile: deploy/app/values-worker.yaml
+          - name: video-demo-web
+            path: deploy/app
+            wave: "6"
+            valuesFile: deploy/web/values-web.yaml
+  strategy:
+    type: RollingSync
+    rollingSync:
+      steps:
+        - matchExpressions:
+            - key: wave
+              operator: In
+              values: ["1"]
+        - matchExpressions:
+            - key: wave
+              operator: In
+              values: ["2"]
+        - matchExpressions:
+            - key: wave
+              operator: In
+              values: ["3"]
+        - matchExpressions:
+            - key: wave
+              operator: In
+              values: ["4"]
+        - matchExpressions:
+            - key: wave
+              operator: In
+              values: ["5"]
+        - matchExpressions:
+            - key: wave
+              operator: In
+              values: ["6"]
+  template:
+    metadata:
+      name: '{{ .name }}'
+      namespace: argocd
+      labels:
+        app.kubernetes.io/part-of: video-demo
+        wave: '{{ .wave }}'
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+    spec:
+      project: default
+      {{- if index . "valuesFile" }}
+      sources:
+        - repoURL: https://github.com/GiladTrachtenberg/python-server-infra.git
+          targetRevision: HEAD
+          path: '{{ .path }}'
+          helm:
+            releaseName: '{{ .name }}'
+            valueFiles:
+              - '$values/{{ .valuesFile }}'
+        - repoURL: https://github.com/GiladTrachtenberg/python-server-adge.git
+          targetRevision: HEAD
+          ref: values
+      {{- else }}
+      source:
+        repoURL: https://github.com/GiladTrachtenberg/python-server-infra.git
+        targetRevision: HEAD
+        path: '{{ .path }}'
+      {{- end }}
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: demo
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=false

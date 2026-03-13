@@ -16,16 +16,24 @@ spec:
         {{- include "video-demo.selectorLabels" . | nindent 8 }}
     spec:
       restartPolicy: Never
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: migrate
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           command: ["aerich"]
           args: ["upgrade"]
-          {{- if .Values.configMap.enabled | or .Values.sealedSecret.enabled }}
+          {{- if or .Values.configMap.enabled .Values.sealedSecret.enabled .Values.sharedSecrets }}
           envFrom:
             {{- if .Values.configMap.enabled }}
             - configMapRef:
                 name: {{ include "video-demo.fullname" . }}-config
+            {{- end }}
+            {{- range .Values.sharedSecrets }}
+            - secretRef:
+                name: {{ . }}
             {{- end }}
             {{- if .Values.sealedSecret.enabled }}
             - secretRef:

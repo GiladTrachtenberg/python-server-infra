@@ -29,6 +29,10 @@ sealedSecret:
   enabled: false
   encryptedData: {}
 
+sharedSecrets: []
+
+imagePullSecrets: []
+
 env: {}
 
 resources: {}

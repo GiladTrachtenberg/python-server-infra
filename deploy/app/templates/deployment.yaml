@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "video-demo.fullname" . }}-{{ .Values.component }}
+  name: {{ include "video-demo.fullname" . }}
   labels:
     {{- include "video-demo.labels" . | nindent 4 }}
 spec:
@@ -14,6 +14,10 @@ spec:
       labels:
         {{- include "video-demo.selectorLabels" . | nindent 8 }}
     spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: {{ .Values.component }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -28,11 +32,15 @@ spec:
               containerPort: {{ .Values.service.targetPort }}
               protocol: TCP
           {{- end }}
-          {{- if .Values.configMap.enabled | or .Values.sealedSecret.enabled }}
+          {{- if or .Values.configMap.enabled .Values.sealedSecret.enabled .Values.sharedSecrets }}
           envFrom:
             {{- if .Values.configMap.enabled }}
             - configMapRef:
                 name: {{ include "video-demo.fullname" . }}-config
+            {{- end }}
+            {{- range .Values.sharedSecrets }}
+            - secretRef:
+                name: {{ . }}
             {{- end }}
             {{- if .Values.sealedSecret.enabled }}
             - secretRef:
