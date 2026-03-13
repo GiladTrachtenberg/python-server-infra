@@ -18,6 +18,12 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- if eq (.Values.component | default "") "web" }}
+      initContainers:
+        - name: wait-for-api
+          image: busybox:1.37
+          command: ["sh", "-c", "until nc -z video-demo-api 8000; do echo 'waiting for api...'; sleep 2; done"]
+      {{- end }}
       containers:
         - name: {{ .Values.component }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
