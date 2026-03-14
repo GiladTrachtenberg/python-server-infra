@@ -12,11 +12,41 @@ spec:
             path: deploy/infra/cnpg-cluster
             wave: "1"
           - name: redis
-            path: deploy/infra/redis
             wave: "2"
+            chartRepo: https://charts.bitnami.com/bitnami
+            chart: redis
+            chartVersion: "23.2.12"
+            helmValues:
+              architecture: standalone
+              auth:
+                enabled: true
+                existingSecret: redis-password
+                existingSecretPasswordKey: redis-password
+              master:
+                persistence:
+                  size: 512Mi
+              commonAnnotations:
+                argocd.argoproj.io/sync-wave: "2"
           - name: minio
-            path: deploy/infra/minio
             wave: "3"
+            chartRepo: https://charts.min.io/
+            chart: minio
+            chartVersion: "5.4.0"
+            helmValues:
+              mode: standalone
+              replicas: 1
+              persistence:
+                size: 1Gi
+              existingSecret: minio-creds
+              buckets:
+                - name: video-demo
+                  policy: none
+                  purge: false
+              resources:
+                requests:
+                  memory: 256Mi
+              commonAnnotations:
+                argocd.argoproj.io/sync-wave: "3"
           - name: video-demo-api
             path: deploy/app
             wave: "4"
@@ -79,7 +109,16 @@ spec:
           - CreateNamespace=false
   templatePatch: |
     spec:
-      {{- if index . "valuesFile" }}
+      {{- if index . "chartRepo" }}
+      source:
+        repoURL: '{{ .chartRepo }}'
+        chart: '{{ .chart }}'
+        targetRevision: '{{ .chartVersion }}'
+        helm:
+          releaseName: '{{ .name }}'
+          valuesObject:
+            {{- .helmValues | toYaml | nindent 12 }}
+      {{- else if index . "valuesFile" }}
       sources:
         - repoURL: https://github.com/GiladTrachtenberg/python-server-infra.git
           targetRevision: HEAD
