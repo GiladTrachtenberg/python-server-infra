@@ -253,14 +253,17 @@ run_full_flow() {
         return
     fi
 
-    echo -e "  ${CYAN}Connecting to SSE (timeout ${TIMEOUT}s)...${NC}"
+    echo -e "  ${CYAN}Connecting to user-scoped SSE (timeout ${TIMEOUT}s)...${NC}"
     local sse_completed=false
-    local sse_url="$BASE_URL/api/v1/jobs/$job_id/events?token=$access_token"
+    local sse_url="$BASE_URL/api/v1/jobs/events?token=$access_token"
 
     while IFS= read -r line; do
         if [[ "$line" == data:* ]]; then
             local data="${line#data:}"
             data="${data#"${data%%[![:space:]]*}"}"
+            if [[ "$data" != *"$job_id"* ]]; then
+                continue
+            fi
             echo -e "    SSE event: $data"
             if [[ "$data" == *"completed"* || "$data" == *"COMPLETED"* ]]; then
                 sse_completed=true
